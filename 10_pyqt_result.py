@@ -42,6 +42,7 @@ x_ticks = []
 
 loop_cnt = 0
 ischanged = False
+waiting = False
 
 form_class = uic.loadUiType("gui.ui")[0]
 
@@ -114,9 +115,18 @@ class WindowClass(QMainWindow, form_class):
         x_ticks = df_tick['xticks']
 
     def btn_stop(self):
-        self.slider.setValue(0)
         global running
+        global ischanged
+        global loop_cnt
+        global start_frame
+
         running = False
+        ischanged = True
+        loop_cnt = int(start_frame/120) + 1
+
+        self.slider.setValue(0)
+        self.label_view.clear()
+        self.label_view.setText("이 곳에서 영상이 출력됩니다.")
 
     def btn_fast(self):
         global speed_V
@@ -148,6 +158,15 @@ class WindowClass(QMainWindow, form_class):
         global start_frame
         global end_frame
         global loop_cnt
+        global running
+        global waiting
+
+        if running:
+            print("not yet playing")
+            return
+        elif waiting:
+            print("not yet changed")
+            return
 
         path_str = path[baby_num] + str(self.combo_video.currentText())
         start_frame = int(self.range_start.toPlainText())
@@ -168,6 +187,8 @@ class WindowClass(QMainWindow, form_class):
 
 
 def play(img, fps):
+    global cnt_frame
+
     slider.setValue(cnt_frame)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     h, w, c = img.shape
@@ -186,7 +207,7 @@ def run():
     global video_index
     global loop_cnt
     global ischanged
-
+    global waiting
     # graph_s = start_frame + xticks[video_index]
     # graph_e = end_frame + xticks[video_index]
     # show_graph(graph_s, graph_e)
@@ -206,22 +227,27 @@ def run():
                 label_view.clear()
                 continue
             elif cnt_frame >= end_frame:
+                running = False
                 slider.setValue(cnt_frame)
+                label_view.clear()
+                label_view.setText("이 곳에서 영상이 출력됩니다.")
                 break
             else:
                 if check_con:
                     play(img, fps)
                     if cnt_frame >= 120 * loop_cnt:
                         loop_cnt += 1
+                        label_state.setText(str(loop_cnt))
                 else:
-                    print(loop_cnt)
-                    print(cnt_frame)
                     play(img, fps)
                     if cnt_frame >= 120 * loop_cnt:
                         loop_cnt += 1
+                        label_state.setText(str(loop_cnt))
                         while 1:
+                            waiting = True
                             if ischanged:
                                 ischanged = False
+                                waiting = False
                                 break
         else:
             QtWidgets.QMessageBox.about(myWindow, "Error", "Cannot read frame.")
@@ -297,6 +323,7 @@ if __name__ == "__main__":
     label_now = myWindow.label_now
     label_sensor = myWindow.label_sensor
     label_video = myWindow.label_video
+    label_state = myWindow.label_state
     slider = myWindow.slider
     # 프로그램 화면을 보여주는 코드
     myWindow.show()

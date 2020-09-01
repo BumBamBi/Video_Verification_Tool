@@ -9,6 +9,7 @@ Video Verification Tool using python/pyqt5
 6. _to_show_graph_subplot_part.py
 7. _to_show_graph_subplot_part_hist&corr.py
 8. _to_show_graph_subplot_part_hist&corr_upgrade.py
-9. pyqt_result.py
+9. _to_make_result_txt.py
+10. _pyqt_result.py
 
 gui.ui	(pyqt5)
