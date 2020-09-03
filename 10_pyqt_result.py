@@ -43,6 +43,8 @@ x_ticks = []
 loop_cnt = 0
 ischanged = False
 waiting = False
+isfirstSearch = True
+isStop = False
 
 form_class = uic.loadUiType("gui.ui")[0]
 
@@ -119,9 +121,13 @@ class WindowClass(QMainWindow, form_class):
         global ischanged
         global loop_cnt
         global start_frame
+        global isfirstSearch
+        global isStop
 
+        isStop = True
+        isfirstSearch = False
         running = False
-        ischanged = True
+        #ischanged = True
         loop_cnt = int(start_frame/120) + 1
 
         self.slider.setValue(0)
@@ -132,14 +138,14 @@ class WindowClass(QMainWindow, form_class):
         global speed_V
 
         if speed_V < 8:
-            speed_V += 0.5
+            speed_V *= 2
             self.speed.setText('x' + str(speed_V))
 
     def btn_slow(self):
         global speed_V
 
         if speed_V > 0.5:
-            speed_V -= 0.5
+            speed_V /= 2
             self.speed.setText('x' + str(speed_V))
 
     def btn_change(self):
@@ -160,6 +166,9 @@ class WindowClass(QMainWindow, form_class):
         global loop_cnt
         global running
         global waiting
+        global isStop
+
+        isStop = False
 
         if running:
             print("not yet playing")
@@ -208,10 +217,12 @@ def run():
     global loop_cnt
     global ischanged
     global waiting
-    # graph_s = start_frame + xticks[video_index]
-    # graph_e = end_frame + xticks[video_index]
-    # show_graph(graph_s, graph_e)
-    show_graph(start_frame, end_frame)
+    global isfirstSearch
+    global isStop
+
+    if isfirstSearch:
+        isfirstSearch = False
+        show_graph(start_frame, end_frame)
 
     cap = cv2.VideoCapture(path_str)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -222,9 +233,12 @@ def run():
         if ret:
             cnt_frame += 1
             label_now.setText("현재 프레임 위치 : " + str(cnt_frame))
+            label_state.setText(str(loop_cnt))
 
             if cnt_frame < start_frame:
                 label_view.clear()
+                if cnt_frame >= 120 + 30 * (loop_cnt - 1):
+                    loop_cnt += 1
                 continue
             elif cnt_frame >= end_frame:
                 running = False
@@ -235,32 +249,47 @@ def run():
             else:
                 if check_con:
                     play(img, fps)
-                    if cnt_frame >= 120 * loop_cnt:
+                    if cnt_frame >= 120 + 30 * (loop_cnt-1):
                         loop_cnt += 1
-                        label_state.setText(str(loop_cnt))
                 else:
                     play(img, fps)
-                    if cnt_frame >= 120 * loop_cnt:
+                    if cnt_frame >= 120 + 30 * (loop_cnt-1):
                         loop_cnt += 1
-                        label_state.setText(str(loop_cnt))
                         while 1:
                             waiting = True
-                            if ischanged:
+                            print('1')
+                            print(isStop)
+                            print(ischanged)
+                            if isStop:
+                                isStop = False
                                 ischanged = False
                                 waiting = False
-                                break
+                                cnt_frame = 0
+                                cap.release()
+                                return
+                            elif ischanged:
+                                ischanged = False
+                                waiting = False
+
+                                cnt_frame = 0
+                                if start_frame < 30 * (loop_cnt-1):
+                                    start_frame = 30 * (loop_cnt-1)
+                                cap.release()
+                                start()
+                                return
         else:
             QtWidgets.QMessageBox.about(myWindow, "Error", "Cannot read frame.")
             print("cannot read frame.")
             break
     cnt_frame = 0
+    isfirstSearch = False
     cap.release()
+
     print("Thread end.")
 
 
 def start():
     global running
-
     running = True
     th = threading.Thread(target=run)
     th.daemon = True
