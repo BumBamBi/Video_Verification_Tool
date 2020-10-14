@@ -50,14 +50,6 @@ def make_result():
     #save_file_name = 'baby' + str(baby_num + 2) + '_result.txt'
     #result.to_csv(save_file_name, index=False, header=None)
 
-    for i in np.arange(1, len(df)-1):
-        if df['frame'][i] < df['frame'][i-1]:
-            # 영상 바뀌는 순간
-            ticks = np.hstack((ticks, i))
-            ticks_s = np.vstack((ticks_s, i))
-
-    ticks = np.hstack((ticks, len(df)-1))
-    ticks_s = np.vstack((ticks_s, len(df)-1))
 
 for i in np.arange(6):
     baby_num = i
